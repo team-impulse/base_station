@@ -1,6 +1,7 @@
 from gi.repository import  Gtk, GObject, Gdk
 import serial,sys,time,os,math,CoordDistance,BNG
 from serial.tools.list_ports import comports #import statements
+import mpl_toolkits.basemap.pyproj as pyproj#pyproj for map coordinate system changes.
 
 #hard definitions - "constants"
 const_default_serial_port = ""
@@ -242,7 +243,7 @@ def check_arm_buttons():
         arm_button_array[1].set_sensitive(True)
         if not rvr_para_armed:
             toggle_button_array[1].set_label("Parachute Release Armed")
-            next_pkt.add_cmd([5])#no way of disarming parachute release at rover end--only UI element.
+            next_pkt.add_cmd([3])#no way of disarming parachute release at rover end--only UI element.
         rvr_para_armed = True
     else:
         arm_button_array[1].set_sensitive(False)
@@ -261,7 +262,7 @@ def check_arm_buttons():
         rvr_motors_manual = False
 
 def update_metrics_display():
-    labels = [builder.get_object("pressure_label"),builder.get_object("int_temp_label"),builder.get_object("humidity_label"),builder.get_object("ext_temp_label"),builder.get_object("dp_label"),builder.get_object("mag_crs_label"),builder.get_object("height_label"),builder.get_object("qfe_label"),builder.get_object("lat_label"),builder.get_object("lng_label"),builder.get_object("hdop_label"),builder.get_object("distance_label")]
+    labels = [builder.get_object("pressure_label"),builder.get_object("int_temp_label"),builder.get_object("humidity_label"),builder.get_object("ext_temp_label"),builder.get_object("dp_label"),builder.get_object("mag_crs_label"),builder.get_object("height_label"),builder.get_object("qfe_label"),builder.get_object("lat_label"),builder.get_object("lng_label"),builder.get_object("hdop_label"),builder.get_object("distance_label"),builder.get_object("os_label")]
     global data
     labels[0].set_text(str(data[2][-1]))#pressure
     labels[1].set_text(str(data[4][-1]))#MS5637 temp
@@ -275,6 +276,16 @@ def update_metrics_display():
     labels[9].set_text(str(data[8][-1]))#lng
     labels[10].set_text(str(data[9][-1]))#hdop
     labels[11].set_text(str((CoordDistance.distance_on_unit_sphere(data[7][-1],data[8][-1],const_lat,const_lng) *6373000)))
+    osgb36=pyproj.Proj("+init=EPSG:27700")
+    wgs84=pyproj.Proj("+init=EPSG:4326")
+    new_coords = pyproj.transform(wgs84, osgb36, data[7][-1], data[8][-1])
+    try:
+        os_coords = BNG.from_osgb36(new_coords,6)
+    except ValueError:
+        print "GPS not ready."
+        os_coords = "-"
+    labels[12].set_text(str(os_coords))
+
 
 def update_display(self):
     #function to perform all of the update operations required
@@ -314,6 +325,17 @@ def send_waypoint(self):
     dist *= 6373000
     print "Travelling ",dist, "m"
 
+def update_os_coords(self):
+    print "Updating"
+    os_coords = builder.get_object("new_wpt_os_entry").get_text()
+    osgb36=pyproj.Proj("+init=EPSG:27700")
+    wgs84=pyproj.Proj("+init=EPSG:4326")
+    osgb36_coords = BNG.to_osgb36(os_coords)
+    new_coords = pyproj.transform(osgb36, wgs84, osgb36_coords[0],osgb36_coords[1])
+    builder.get_object("new_wpt_lat_entry").set_text(str(new_coords[1]))
+    builder.get_object("new_wpt_lng_entry").set_text(str(new_coords[0]))
+    print new_coords
+
 def set_qfe(self):
     tb = builder.get_object("qfe_set_box")
     global QFE
@@ -321,6 +343,9 @@ def set_qfe(self):
         QFE = float(tb.get_text())
     except ValueError:
         print "invalid QFE value"
+
+def release_parachute(self):
+    next_pkt.add_cmd([7,255,255])
 
 counts = [0,0,0] #Packets, CRC failure, missed
 last_packet_id = 0
@@ -343,6 +368,8 @@ handler = {
     "manual_right":m_r,
     "rover_stop":stop_rover,
     "send_wpt":send_waypoint,
+    "convert_os":update_os_coords,
+    "chute_release":release_parachute
 }
 builder.connect_signals(handler)#connect event handlers
 populateSerial()#fill the combobox with serial port names

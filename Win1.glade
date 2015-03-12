@@ -673,7 +673,7 @@
               <object class="GtkLabel" id="distance_label">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">label</property>
+                <property name="label" translatable="yes">-</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -756,6 +756,7 @@
                     <property name="sensitive">False</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
+                    <signal name="pressed" handler="chute_release" swapped="no"/>
                   </object>
                   <packing>
                     <property name="left_attach">1</property>
@@ -980,10 +981,11 @@ Lat/long</property>
                     </child>
                     <child>
                       <object class="GtkButton" id="new_wpt_os_button">
-                        <property name="label" translatable="yes">SEND!</property>
+                        <property name="label" translatable="yes">Convert</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
+                        <signal name="pressed" handler="convert_os" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">2</property>
