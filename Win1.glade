@@ -146,7 +146,7 @@
           <object class="GtkTable" id="table3">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="n_rows">13</property>
+            <property name="n_rows">14</property>
             <property name="n_columns">3</property>
             <child>
               <object class="GtkLabel" id="label5">
@@ -656,6 +656,43 @@
                 <property name="top_attach">10</property>
                 <property name="bottom_attach">11</property>
                 <property name="x_options"/>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label40">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Distance</property>
+              </object>
+              <packing>
+                <property name="top_attach">13</property>
+                <property name="bottom_attach">14</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="distance_label">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">label</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="right_attach">2</property>
+                <property name="top_attach">13</property>
+                <property name="bottom_attach">14</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label42">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">m</property>
+              </object>
+              <packing>
+                <property name="left_attach">2</property>
+                <property name="right_attach">3</property>
+                <property name="top_attach">13</property>
+                <property name="bottom_attach">14</property>
               </packing>
             </child>
           </object>

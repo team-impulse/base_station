@@ -1,5 +1,5 @@
 from gi.repository import  Gtk, GObject, Gdk
-import serial,sys,time,os,math,CoordDistance
+import serial,sys,time,os,math,CoordDistance,BNG
 from serial.tools.list_ports import comports #import statements
 
 #hard definitions - "constants"
@@ -36,6 +36,8 @@ class Packet():
                 for i in cmd_array:
                     serial_port.write(chr(i))#send each command byte.
                     print i
+
+        self.cmd.pop(6,None)
     def wipe(self):
         self.cmd = {}
 
@@ -102,7 +104,10 @@ def exit_button(self):
     Gtk.main_quit()
 
 def check_serial():
-    return serial_port.readline()
+    try:
+        return serial_port.readline()
+    except:
+        return ""
 
 def writeData(item, file):
   file.write(str(item))
@@ -194,7 +199,8 @@ def process_serial_data(input_data):
         crs = round(crs,0)
         crs = int(crs)
         writeData(gps_hdop,file)
-        file.write(str(time.time()-program_start_time))
+        writeData((time.time()-program_start_time),file)
+        file.write(str(ht))
         file.write('\n')#so write a new line char
         data[10].append(crs)
         data[12].append(time.time()-program_start_time)
@@ -255,7 +261,7 @@ def check_arm_buttons():
         rvr_motors_manual = False
 
 def update_metrics_display():
-    labels = [builder.get_object("pressure_label"),builder.get_object("int_temp_label"),builder.get_object("humidity_label"),builder.get_object("ext_temp_label"),builder.get_object("dp_label"),builder.get_object("mag_crs_label"),builder.get_object("height_label"),builder.get_object("qfe_label"),builder.get_object("lat_label"),builder.get_object("lng_label"),builder.get_object("hdop_label")]
+    labels = [builder.get_object("pressure_label"),builder.get_object("int_temp_label"),builder.get_object("humidity_label"),builder.get_object("ext_temp_label"),builder.get_object("dp_label"),builder.get_object("mag_crs_label"),builder.get_object("height_label"),builder.get_object("qfe_label"),builder.get_object("lat_label"),builder.get_object("lng_label"),builder.get_object("hdop_label"),builder.get_object("distance_label")]
     global data
     labels[0].set_text(str(data[2][-1]))#pressure
     labels[1].set_text(str(data[4][-1]))#MS5637 temp
@@ -267,8 +273,8 @@ def update_metrics_display():
     labels[7].set_text(str(QFE))#QFE
     labels[8].set_text(str(data[7][-1]))#lat
     labels[9].set_text(str(data[8][-1]))#lng
-
     labels[10].set_text(str(data[9][-1]))#hdop
+    labels[11].set_text(str((CoordDistance.distance_on_unit_sphere(data[7][-1],data[8][-1],const_lat,const_lng) *6373000)))
 
 def update_display(self):
     #function to perform all of the update operations required
@@ -336,7 +342,7 @@ handler = {
     "manual_left":m_l,
     "manual_right":m_r,
     "rover_stop":stop_rover,
-    "send_wpt":send_waypoint
+    "send_wpt":send_waypoint,
 }
 builder.connect_signals(handler)#connect event handlers
 populateSerial()#fill the combobox with serial port names
