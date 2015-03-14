@@ -9,7 +9,7 @@ const_default_serial_baud = 38400
 const_data_bad_time = 3.0
 const_serial_timeout = 0.01
 const_lng_mult = -1
-const_data_send_time = 1
+const_data_send_time = 0.5
 
 const_lat=51.000
 const_lng=-0.234
@@ -18,6 +18,7 @@ const_lng=-0.234
 last_data_received_time = 0.0
 last_data_sent_time = 0.0
 program_start_time = time.time()
+parachute_deployed = False
 class Packet():
     cmd = {}
     def add_cmd(self,c):
@@ -272,9 +273,9 @@ def update_metrics_display():
     labels[5].set_text(str(data[10][-1]))#magnetometer heading
     labels[6].set_text(str(data[11][-1]))#height
     labels[7].set_text(str(QFE))#QFE
-    labels[8].set_text(str(data[7][-1]))#lat
-    labels[9].set_text(str(data[8][-1]))#lng
-    labels[10].set_text(str(data[9][-1]))#hdop
+    #labels[8].set_text(str(data[7][-1]))#lat
+    #labels[9].set_text(str(data[8][-1]))#lng
+    #labels[10].set_text(str(data[9][-1]))#hdop
     labels[11].set_text(str((CoordDistance.distance_on_unit_sphere(data[7][-1],data[8][-1],const_lat,const_lng) *6373000)))
     osgb36=pyproj.Proj("+init=EPSG:27700")
     wgs84=pyproj.Proj("+init=EPSG:4326")
@@ -312,15 +313,15 @@ def m_f(self):
 def m_b(self):
     next_pkt.add_cmd([2,0,0])#go back
 def m_l(self):
-    next_pkt.add_cmd([2,1,2])#go left
+    next_pkt.add_cmd([2,2,1])#go left
 def m_r(self):
-    next_pkt.add_cmd([2,2,1])#go right
+    next_pkt.add_cmd([2,1,2])#go right
 def stop_rover(self):
     next_pkt.add_cmd([2,1,1])#stop
 def send_waypoint(self):
     wpt_boxes = [builder.get_object("new_wpt_lat_entry"),builder.get_object("new_wpt_lng_entry")]
-    new_lat = int(wpt_boxes[0].get_text())
-    new_lng = int(wpt_boxes[1].get_text())
+    new_lat = float(wpt_boxes[0].get_text())
+    new_lng = float(wpt_boxes[1].get_text())
     dist = CoordDistance.distance_on_unit_sphere(new_lat,new_lng,data[7][-1],data[8][-1])#8,7
     dist *= 6373000
     print "Travelling ",dist, "m"
@@ -345,7 +346,16 @@ def set_qfe(self):
         print "invalid QFE value"
 
 def release_parachute(self):
-    next_pkt.add_cmd([7,255,255])
+    global parachute_deployed
+    print parachute_deployed
+    if parachute_deployed:
+        next_pkt.add_cmd([7,0,0])
+        print "Stow"
+    else:
+        next_pkt.add_cmd([7,255,255])
+        print "release"
+    parachute_deployed = not parachute_deployed#invert system state
+
 
 counts = [0,0,0] #Packets, CRC failure, missed
 last_packet_id = 0

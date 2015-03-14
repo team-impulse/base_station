@@ -30,9 +30,9 @@ void loop(){
      attachInterrupt(7,RFMISR,RISING);
    }
   }
-  if(radio.rfm_done && radio.rfm_status==1)
+  if(radio.rfm_done && radio.rfm_status==1){
     radio.endTX();  
-}
+}}
 
 void RFMISR(){
  radio.rfm_done = true; 
