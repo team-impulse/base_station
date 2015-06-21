@@ -1,16 +1,14 @@
 from gi.repository import  Gtk, GObject, Gdk
 import serial,sys,time,os,math,CoordDistance,BNG
 from serial.tools.list_ports import comports #import statements
-import mpl_toolkits.basemap.pyproj as pyproj#pyproj for map coordinate system changes.
-
+#import mpl_toolkits.basemap.pyproj as pyproj#pyproj for map coordinate system changes.
 #hard definitions - "constants"
 const_default_serial_port = ""
 const_default_serial_baud = 38400
 const_data_bad_time = 3.0
 const_serial_timeout = 0.01
 const_lng_mult = -1
-const_data_send_time = 0.5
-
+const_data_send_time = 1
 const_lat=51.000
 const_lng=-0.234
 
@@ -40,6 +38,8 @@ class Packet():
                     print i
 
         self.cmd.pop(6,None)
+        global last_data_sent_time
+        last_data_sent_time = time.time()
     def wipe(self):
         self.cmd = {}
 
@@ -141,6 +141,7 @@ def process_serial_data(input_data):
         CRC = False
 
     file = open(log_file_names[1],"a")
+    CRC=True #=--debugging---
     if CRC:
         writeData(1,file)
         #RSSI
@@ -180,11 +181,8 @@ def process_serial_data(input_data):
         data[6].append(dp)
         writeData(str(dp),file)
         #GPS:
-        gps_lat = ((int(sdt[11])<<24) | (int(sdt[12])<<16) | (int(sdt[13])<<8) | int(sdt[14]))/1000000000.0
-        gps_lat+=53
-        gps_lng = ((int(sdt[15])<<24) | (int(sdt[16])<<16) | (int(sdt[17])<<8) | int(sdt[18]))/1000000000.0
-        if gps_lng < 0.5:
-            gps_lng += 1
+        gps_lat = ((int(sdt[11])<<24) | (int(sdt[12])<<16) | (int(sdt[13])<<8) | int(sdt[14]))/1000000.0
+        gps_lng = ((int(sdt[15])<<24) | (int(sdt[16])<<16) | (int(sdt[17])<<8) | int(sdt[18]))/1000000.0
 
         gps_lng *= const_lng_mult #make the longitude negative if necessary
         data[7].append(gps_lat)
@@ -273,20 +271,10 @@ def update_metrics_display():
     labels[5].set_text(str(data[10][-1]))#magnetometer heading
     labels[6].set_text(str(data[11][-1]))#height
     labels[7].set_text(str(QFE))#QFE
-    #labels[8].set_text(str(data[7][-1]))#lat
-    #labels[9].set_text(str(data[8][-1]))#lng
-    #labels[10].set_text(str(data[9][-1]))#hdop
+    labels[8].set_text(str(data[7][-1]))#lat
+    labels[9].set_text(str(data[8][-1]))#lng
+    labels[10].set_text(str(data[9][-1]))#hdop
     labels[11].set_text(str((CoordDistance.distance_on_unit_sphere(data[7][-1],data[8][-1],const_lat,const_lng) *6373000)))
-    osgb36=pyproj.Proj("+init=EPSG:27700")
-    wgs84=pyproj.Proj("+init=EPSG:4326")
-    new_coords = pyproj.transform(wgs84, osgb36, data[7][-1], data[8][-1])
-    try:
-        os_coords = BNG.from_osgb36(new_coords,6)
-    except ValueError:
-        print "GPS not ready."
-        os_coords = "-"
-    labels[12].set_text(str(os_coords))
-
 
 def update_display(self):
     #function to perform all of the update operations required
@@ -310,12 +298,16 @@ def update_display(self):
 
 def m_f(self):
     next_pkt.add_cmd([2,2,2])#go forwards
+    next_pkt.send()
 def m_b(self):
     next_pkt.add_cmd([2,0,0])#go back
+    next_pkt.send()
 def m_l(self):
     next_pkt.add_cmd([2,2,1])#go left
+    next_pkt.send()
 def m_r(self):
     next_pkt.add_cmd([2,1,2])#go right
+    next_pkt.send()
 def stop_rover(self):
     next_pkt.add_cmd([2,1,1])#stop
 def send_waypoint(self):
