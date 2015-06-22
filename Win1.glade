@@ -149,6 +149,12 @@
             <property name="n_rows">14</property>
             <property name="n_columns">3</property>
             <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
               <object class="GtkLabel" id="label5">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -295,18 +301,6 @@
               <packing>
                 <property name="top_attach">9</property>
                 <property name="bottom_attach">10</property>
-                <property name="x_options"/>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="label17">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">OS ref</property>
-              </object>
-              <packing>
-                <property name="top_attach">10</property>
-                <property name="bottom_attach">11</property>
                 <property name="x_options"/>
               </packing>
             </child>
@@ -606,19 +600,6 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="os_label">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">-</property>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="right_attach">2</property>
-                <property name="top_attach">10</property>
-                <property name="bottom_attach">11</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkLabel" id="mag_crs_label">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -879,6 +860,9 @@ Parachute
                     <property name="n_rows">3</property>
                     <property name="n_columns">3</property>
                     <child>
+                      <placeholder/>
+                    </child>
+                    <child>
                       <object class="GtkLabel" id="label35">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -949,53 +933,6 @@ Lat/long</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="label36">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">New wpt
-   (OS)</property>
-                      </object>
-                      <packing>
-                        <property name="top_attach">1</property>
-                        <property name="bottom_attach">2</property>
-                        <property name="x_options"/>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry" id="new_wpt_os_entry">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="invisible_char">●</property>
-                        <property name="primary_icon_activatable">False</property>
-                        <property name="secondary_icon_activatable">False</property>
-                        <property name="primary_icon_sensitive">True</property>
-                        <property name="secondary_icon_sensitive">True</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="right_attach">2</property>
-                        <property name="top_attach">1</property>
-                        <property name="bottom_attach">2</property>
-                        <property name="y_options"/>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkButton" id="new_wpt_os_button">
-                        <property name="label" translatable="yes">Convert</property>
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="receives_default">True</property>
-                        <signal name="pressed" handler="convert_os" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="left_attach">2</property>
-                        <property name="right_attach">3</property>
-                        <property name="top_attach">1</property>
-                        <property name="bottom_attach">2</property>
-                        <property name="y_options"/>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkLabel" id="label37">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -1038,6 +975,32 @@ WPTS
                         <property name="top_attach">2</property>
                         <property name="bottom_attach">3</property>
                         <property name="y_options"/>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkButton" id="countup_button">
+                        <property name="label" translatable="yes">00:00</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <signal name="clicked" handler="start_countup" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="top_attach">1</property>
+                        <property name="bottom_attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="eeprom_log_label">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">EEPROM NOT LOGGING</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">1</property>
+                        <property name="right_attach">2</property>
+                        <property name="top_attach">1</property>
+                        <property name="bottom_attach">2</property>
                       </packing>
                     </child>
                   </object>

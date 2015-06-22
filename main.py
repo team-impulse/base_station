@@ -16,6 +16,8 @@ const_lng=-0.234
 last_data_received_time = 0.0
 last_data_sent_time = 0.0
 program_start_time = time.time()
+launch_time = 0
+launched = False
 parachute_deployed = False
 class Packet():
     cmd = {}
@@ -38,6 +40,7 @@ class Packet():
                     print i
 
         self.cmd.pop(6,None)
+        self.cmd.pop(1,None)
         global last_data_sent_time
         last_data_sent_time = time.time()
     def wipe(self):
@@ -261,7 +264,7 @@ def check_arm_buttons():
         rvr_motors_manual = False
 
 def update_metrics_display():
-    labels = [builder.get_object("pressure_label"),builder.get_object("int_temp_label"),builder.get_object("humidity_label"),builder.get_object("ext_temp_label"),builder.get_object("dp_label"),builder.get_object("mag_crs_label"),builder.get_object("height_label"),builder.get_object("qfe_label"),builder.get_object("lat_label"),builder.get_object("lng_label"),builder.get_object("hdop_label"),builder.get_object("distance_label"),builder.get_object("os_label")]
+    labels = [builder.get_object("pressure_label"),builder.get_object("int_temp_label"),builder.get_object("humidity_label"),builder.get_object("ext_temp_label"),builder.get_object("dp_label"),builder.get_object("mag_crs_label"),builder.get_object("height_label"),builder.get_object("qfe_label"),builder.get_object("lat_label"),builder.get_object("lng_label"),builder.get_object("hdop_label"),builder.get_object("distance_label"),builder.get_object("os_label"), builder.get_object("countup_button")]
     global data
     labels[0].set_text(str(data[2][-1]))#pressure
     labels[1].set_text(str(data[4][-1]))#MS5637 temp
@@ -275,10 +278,15 @@ def update_metrics_display():
     labels[9].set_text(str(data[8][-1]))#lng
     labels[10].set_text(str(data[9][-1]))#hdop
     labels[11].set_text(str((CoordDistance.distance_on_unit_sphere(data[7][-1],data[8][-1],const_lat,const_lng) *6373000)))
+    if launched:
+        labels[13].set_label(str(round(time.time()-launch_time,1)))
+    else:
+        labels[13].set_label("0.0")
+
 
 def update_display(self):
     #function to perform all of the update operations required
-    global last_data_sent_time
+    global last_data_sent_time, launch_time, launched
     if(time.time()-last_data_sent_time)>=const_data_send_time:
         next_pkt.send()
         last_data_sent_time = time.time()
@@ -289,7 +297,7 @@ def update_display(self):
          ser_buf = raw_ser_box.get_buffer()
          ser_buf.insert(ser_buf.get_end_iter(), last_read)
          raw_ser_box.scroll_mark_onscreen(ser_buf.get_insert())#update raw serial box
-         update_metrics_display() #now update the metrics display with the latest data
+    update_metrics_display() #now update the metrics display with the latest data
     set_data_stats_display()#update statistics
 
     #now to check the arming buttons
@@ -312,8 +320,16 @@ def stop_rover(self):
     next_pkt.add_cmd([2,1,1])#stop
 def send_waypoint(self):
     wpt_boxes = [builder.get_object("new_wpt_lat_entry"),builder.get_object("new_wpt_lng_entry")]
-    new_lat = float(wpt_boxes[0].get_text())
-    new_lng = float(wpt_boxes[1].get_text())
+    new_lat = int(float(wpt_boxes[0].get_text())*1000000)
+    new_lng = int(float(wpt_boxes[1].get_text())*1000000) * const_lng_mult
+    new_lat_bytes = [new_lat>>24, (new_lat>>16)&0xFF,(new_lat>>8)&0xFF,(new_lat)&0xFF]
+    new_lng_bytes = [new_lng>>24, (new_lng>>16)&0xFF,(new_lng>>8)&0xFF,(new_lng)&0xFF]
+    cmd_to_add = [1]
+    for new_lat_byte in new_lat_bytes:
+        cmd_to_add.append(new_lat_byte)
+    for new_lng_byte in new_lng_bytes:
+        cmd_to_add.append(new_lng_byte)
+    next_pkt.add_cmd(cmd_to_add)
     dist = CoordDistance.distance_on_unit_sphere(new_lat,new_lng,data[7][-1],data[8][-1])#8,7
     dist *= 6373000
     print "Travelling ",dist, "m"
@@ -348,6 +364,10 @@ def release_parachute(self):
         print "release"
     parachute_deployed = not parachute_deployed#invert system state
 
+def start_countup(self):
+    global  launch_time,launched
+    launch_time = time.time()
+    launched = True
 
 counts = [0,0,0] #Packets, CRC failure, missed
 last_packet_id = 0
@@ -371,7 +391,8 @@ handler = {
     "rover_stop":stop_rover,
     "send_wpt":send_waypoint,
     "convert_os":update_os_coords,
-    "chute_release":release_parachute
+    "chute_release":release_parachute,
+    "start_countup":start_countup
 }
 builder.connect_signals(handler)#connect event handlers
 populateSerial()#fill the combobox with serial port names
