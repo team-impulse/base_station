@@ -10,17 +10,20 @@ from pylab import *
 import random
 #NB
 #ORIGINAL GRAPHING CODE AND CONCEPT (of using scatter graph) FROM https://stevendkay.wordpress.com/2010/02/24/plotting-points-on-an-openstreetmap-export/
+const_pos_sharefile = 'location.csv'
 xarray = []
 yarray = []
-x=-9.379667 #longitudes
-y=39.120951 #latitudes
+x=-9.13076 #longitudes
+y=39.130771 #latitudes
 plt.ion()
 def makeFigs():
-    m = Basemap(llcrnrlon=-9.394,llcrnrlat=39.101,urcrnrlon=-9.368,urcrnrlat=39.127,
+    m = Basemap(llcrnrlon=-9.382918,llcrnrlat=39.119533,urcrnrlon= -9.376521,urcrnrlat= 39.127501,
      resolution='l',projection='merc')
     x1,y1=m(x,y)
     xarray.append(x1)
     yarray.append(y1)
+
+
     m.drawcoastlines()
     im = plt.imread("map.png")
     m.imshow(im, origin='upper')
@@ -28,10 +31,19 @@ def makeFigs():
 while(1):
     #X AND Y ARE THE RECEIVED DATA FROM THE GPS SENSOR
     #for now they have just been set to random numbers between the limits
-    x = random.uniform(-9.394,-9.368)
-    y = random.uniform(39.101, 39.127)
+    pos = open(const_pos_sharefile,'r')
+    last_line = pos.readline()
+    while(last_line!=""):
+        x = float(last_line.split(",")[0])
+        print x
+        print 'Y:'
+        y = float(last_line.split(",")[1])
+        print y
+        print '-----'
+        last_line = pos.readline()
     drawnow(makeFigs)
     time.sleep(0.1)
+
     #SYSTEM TO START DUMPING OLD DATA - might be completely useless?
     threshold = 30 #maximum pieces of data
     if len(xarray) > threshold:

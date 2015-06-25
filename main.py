@@ -1,5 +1,5 @@
 from gi.repository import  Gtk, GObject, Gdk
-import serial,sys,time,os,math,CoordDistance,BNG
+import serial,sys,time,os,math,CoordDistance,BNG,struct
 from serial.tools.list_ports import comports #import statements
 #import mpl_toolkits.basemap.pyproj as pyproj#pyproj for map coordinate system changes.
 #hard definitions - "constants"
@@ -9,8 +9,9 @@ const_data_bad_time = 3.0
 const_serial_timeout = 0.01
 const_lng_mult = -1
 const_data_send_time = 1
-const_lat=51.000
-const_lng=-0.234
+const_lat=39.125651 #39.125651, -9.379057
+const_lng=-9.379057
+const_pos_sharefile = 'basemap/location.csv'
 
 #misc
 last_data_received_time = 0.0
@@ -124,6 +125,11 @@ def nextCounter():
         nc = 0
     return nc
 
+def process_ir_data(din):
+    ir_data = []
+#    for i in range(25,89):
+#        ir_data.append(din[i])
+
 def process_serial_data(input_data):
     global last_data_received_time #declare that we refer to the global variable. Needed because it in a callback.
     file = open(log_file_names[0],"a")
@@ -131,9 +137,7 @@ def process_serial_data(input_data):
     file.close()
     print input_data
     sdt = input_data.split(",")#the serial data is comma-separated
-    if nextCounter() != int(sdt[24]):
-        counts[2]+=1#if we've skipped one in the packet count sequence, add one to the skipped packets counter
-    last_packet_id=int(sdt[24])
+
     if sdt[0]=='PASS':#if CRC has passed
         CRC = True
         counts[0]+=1#received another packet
@@ -193,12 +197,12 @@ def process_serial_data(input_data):
         writeData(gps_lat,file)
         writeData(gps_lng,file)
         #GPS HDOP:
-        gps_hdop = float(sdt[23])/10.0
+        gps_hdop = float(sdt[21])/10.0
         data[9].append(gps_hdop)
         writeData(gps_hdop,file)
         #course from magnetometer
-        crs = (int(sdt[19])<<24) | (int(sdt[20])<<16) | (int(sdt[21])<<8) | int(sdt[22])
-        crs /= 100.0
+        crs = ((int(sdt[19])<<8) | int(sdt[20]))
+        crs /= 10.0
         crs = round(crs,0)
         crs = int(crs)
         writeData(gps_hdop,file)
@@ -207,7 +211,9 @@ def process_serial_data(input_data):
         file.write('\n')#so write a new line char
         data[10].append(crs)
         data[12].append(time.time()-program_start_time)
-
+        data[13].append(sdt[22])
+        process_ir_data(sdt)
+        share_location()
     else:
         file.write("0")
         file.write('\n')
@@ -264,12 +270,12 @@ def check_arm_buttons():
         rvr_motors_manual = False
 
 def update_metrics_display():
-    labels = [builder.get_object("pressure_label"),builder.get_object("int_temp_label"),builder.get_object("humidity_label"),builder.get_object("ext_temp_label"),builder.get_object("dp_label"),builder.get_object("mag_crs_label"),builder.get_object("height_label"),builder.get_object("qfe_label"),builder.get_object("lat_label"),builder.get_object("lng_label"),builder.get_object("hdop_label"),builder.get_object("distance_label"),builder.get_object("os_label"), builder.get_object("countup_button")]
+    labels = [builder.get_object("pressure_label"),builder.get_object("int_temp_label"),builder.get_object("humidity_label"),builder.get_object("ext_temp_label"),builder.get_object("dp_label"),builder.get_object("mag_crs_label"),builder.get_object("height_label"),builder.get_object("qfe_label"),builder.get_object("lat_label"),builder.get_object("lng_label"),builder.get_object("hdop_label"),builder.get_object("distance_label"),builder.get_object("os_label"), builder.get_object("countup_button"),builder.get_object("wpt_cnt_label")]
     global data
     labels[0].set_text(str(data[2][-1]))#pressure
-    labels[1].set_text(str(data[4][-1]))#MS5637 temp
+    labels[1].set_text(str(data[3][-1]))#MS5637 temp
     labels[2].set_text(str(data[5][-1]))#humidity
-    labels[3].set_text(str(data[3][-1]))#HYT271 temperature
+    labels[3].set_text(str(data[4][-1]))#HYT271 temperature
     labels[4].set_text(str(data[6][-1]))#calculated dew point
     labels[5].set_text(str(data[10][-1]))#magnetometer heading
     labels[6].set_text(str(data[11][-1]))#height
@@ -277,7 +283,8 @@ def update_metrics_display():
     labels[8].set_text(str(data[7][-1]))#lat
     labels[9].set_text(str(data[8][-1]))#lng
     labels[10].set_text(str(data[9][-1]))#hdop
-    labels[11].set_text(str((CoordDistance.distance_on_unit_sphere(data[7][-1],data[8][-1],const_lat,const_lng) *6373000)))
+    labels[11].set_text(str(round((CoordDistance.distance_on_unit_sphere(data[7][-1],data[8][-1],const_lat,const_lng) *6373000),0)))
+    labels[14].set_text(str(data[13][-1]))
     if launched:
         labels[13].set_label(str(round(time.time()-launch_time,1)))
     else:
@@ -369,9 +376,20 @@ def start_countup(self):
     launch_time = time.time()
     launched = True
 
+def drop_all_wpts(self):
+    next_pkt.add_cmd([6,255])
+
+def share_location():
+    pos = open(const_pos_sharefile,'a')
+    pos.write(str(data[7][-1]))
+    pos.write(",")
+    pos.write(str(data[8][-1]))
+    pos.write("\n")
+    pos.close()
+
 counts = [0,0,0] #Packets, CRC failure, missed
 last_packet_id = 0
-data = [[0],[0],[1013.25],[20.0],[35.0],[20.0],[8.0],[50],[0],[9999],[360],[0],[0.0]]#RSSI,SNR,air pressure,ext temp,int temp, humidity, dew point, lat, long, hdop, course, height,time
+data = [[0],[0],[1013.25],[20.0],[35.0],[20.0],[8.0],[50],[0],[9999],[360],[0],[0.0],[0]]#RSSI,SNR,air pressure,ext temp,int temp, humidity, dew point, lat, long, hdop, course, height,time, n(wpts)
 QFE = 1013.25
 log_file_names = [nameLogFile("RAW_DATA"), nameLogFile("REFINED_DATA")]
 serial_port = serial.Serial() #instantiate a new Serial port object
@@ -392,7 +410,8 @@ handler = {
     "send_wpt":send_waypoint,
     "convert_os":update_os_coords,
     "chute_release":release_parachute,
-    "start_countup":start_countup
+    "start_countup":start_countup,
+    "drop_waypoints_clicked":drop_all_wpts
 }
 builder.connect_signals(handler)#connect event handlers
 populateSerial()#fill the combobox with serial port names

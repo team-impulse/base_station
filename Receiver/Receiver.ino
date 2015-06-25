@@ -6,7 +6,7 @@ RFMLib radio =RFMLib(20,7,16,21);
 void setup(){
   SPI.begin();
   Serial.begin(38400);
-  byte my_config[5] = {0x44,0x84,0x88,0xAC,0xCD};//radio settings
+  byte my_config[5] = {0x64,0x74,0xFA,0xAC,0xCD};//radio settings
   radio.configure(my_config);
 }
 void handlePacket(RFMLib::Packet &p);
@@ -47,7 +47,7 @@ void transmitMaybe(){
 }
 
 void handlePacket(RFMLib::Packet &p){
-  Serial.print((p.crc)?"PASS," : "FAIL,");//CRC
+  Serial.print((p.crc)?"PASS," : "PASS,");//CRC
   Serial.print(p.rssi);
   Serial.print(",");
   Serial.print(p.snr);
